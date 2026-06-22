@@ -3,7 +3,6 @@ import {
   ActivityIndicator,
   Alert,
   Image,
-  Modal,
   Platform,
   ScrollView,
   StyleSheet,
@@ -26,6 +25,7 @@ import {doctagsToHtml, isDocTags} from '../../utils/doctags';
 import {ScannerIcon} from '../../assets/icons';
 import {HtmlPreviewBubble} from '../HtmlPreviewBubble';
 import {HeaderRight} from '../HeaderRight';
+import ImageView from '../ChatView/ImageView';
 import {t} from '../../locales';
 
 // Hidden prompt — identical to the serving pipeline.
@@ -293,25 +293,13 @@ export const OCRView: React.FC<OCRViewProps> = observer(
           </View>
         )}
 
-        {/* Full-image preview */}
-        <Modal
+        {/* Full-image preview with pinch-to-zoom / pan / double-tap */}
+        <ImageView
+          images={preview ? [{uri: preview}] : []}
+          imageIndex={0}
           visible={!!preview}
-          transparent
-          animationType="fade"
-          onRequestClose={() => setPreview(null)}>
-          <TouchableOpacity
-            style={styles.modalBg}
-            activeOpacity={1}
-            onPress={() => setPreview(null)}>
-            {preview ? (
-              <Image
-                source={{uri: preview}}
-                style={styles.modalImg}
-                resizeMode="contain"
-              />
-            ) : null}
-          </TouchableOpacity>
-        </Modal>
+          onRequestClose={() => setPreview(null)}
+        />
       </View>
     );
   },
