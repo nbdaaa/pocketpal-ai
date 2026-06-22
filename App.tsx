@@ -37,6 +37,7 @@ import {MarkdownProvider} from './src/components/MarkdownView';
 import {AutomationBridge, BenchmarkRunnerScreen} from './src/__automation__';
 import {
   ChatScreen,
+  OCRScreen,
   ModelsScreen,
   SettingsScreen,
   BenchmarkScreen,
@@ -130,6 +131,13 @@ const App = observer(() => {
                           <Drawer.Screen
                             name={ROUTES.CHAT}
                             component={gestureHandlerRootHOC(ChatScreen)}
+                            options={{
+                              headerShown: false,
+                            }}
+                          />
+                          <Drawer.Screen
+                            name={ROUTES.OCR}
+                            component={gestureHandlerRootHOC(OCRScreen)}
                             options={{
                               headerShown: false,
                             }}

@@ -13,6 +13,7 @@ import {Menu, RenameModal, Checkbox} from '..';
 import {
   BenchmarkIcon,
   ChatIcon,
+  ScannerIcon,
   EditIcon,
   ModelIcon,
   PalIcon,
@@ -495,6 +496,13 @@ export const SidebarContent: React.FC<DrawerContentComponentProps> = observer(
               onPress={() => props.navigation.navigate(ROUTES.CHAT)}
               style={styles.menuDrawerItem}
               testID="drawer-item-chat"
+            />
+            <Drawer.Item
+              label="OCR"
+              icon={() => <ScannerIcon stroke={theme.colors.primary} />}
+              onPress={() => props.navigation.navigate(ROUTES.OCR)}
+              style={styles.menuDrawerItem}
+              testID="drawer-item-ocr"
             />
             <Drawer.Item
               label={l10n.components.sidebarContent.menuItems.pals}
