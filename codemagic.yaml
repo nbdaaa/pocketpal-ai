@@ -37,6 +37,10 @@ workflows:
           </dict>
           </plist>
           PLIST
+          # The Xcode "Bundle React Native code and images" phase runs in a
+          # shell without nvm/corepack, so pin node's absolute path for it.
+          echo "export NODE_BINARY=$(command -v node)" > ios/.xcode.env.local
+          cat ios/.xcode.env.local
       - name: Pod install
         script: |
           cd ios
