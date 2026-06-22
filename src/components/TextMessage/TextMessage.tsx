@@ -20,6 +20,8 @@ import {useTheme} from '../../hooks';
 
 import {styles} from './styles';
 import {MarkdownView} from '../MarkdownView';
+import {HtmlPreviewBubble} from '../HtmlPreviewBubble';
+import {doctagsToHtml, isDocTags} from '../../utils/doctags';
 
 import {AgentStep, MessageType} from '../../utils/types';
 import {
@@ -273,11 +275,21 @@ export const TextMessage = ({
           {/* Render images above the text — legacy Text path only. */}
           {!step && renderImages()}
 
-          <MarkdownView
-            markdownText={visibleText.trim()}
-            maxMessageWidth={messageWidth}
-            selectable={false}
-          />
+          {isDocTags(visibleText) ? (
+            // DocTags output → render like the serving UI (experiment/app.py
+            // `_render`): convert element tags to HTML and show in a WebView,
+            // instead of the markdown renderer which swallows the tags.
+            <HtmlPreviewBubble
+              html={doctagsToHtml(visibleText)}
+              title="Docling"
+            />
+          ) : (
+            <MarkdownView
+              markdownText={visibleText.trim()}
+              maxMessageWidth={messageWidth}
+              selectable={false}
+            />
+          )}
         </View>
       )}
 

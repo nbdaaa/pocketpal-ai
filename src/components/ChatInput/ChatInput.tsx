@@ -256,7 +256,7 @@ export const ChatInput = observer(
 
         const result = await launchCamera({
           mediaType: 'photo',
-          quality: 0.8,
+          quality: 1,
         });
 
         if (result.assets && result.assets.length > 0 && result.assets[0].uri) {
@@ -286,7 +286,7 @@ export const ChatInput = observer(
         const result = await launchImageLibrary({
           mediaType: 'photo',
           selectionLimit: 5, // Allow multiple images
-          quality: 0.8,
+          quality: 1,
         });
 
         if (result.assets && result.assets.length > 0) {
