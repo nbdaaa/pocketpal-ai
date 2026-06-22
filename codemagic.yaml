@@ -48,6 +48,16 @@ workflows:
           # ruby 3.2.3 which mismatches Codemagic's default ruby and breaks
           # `bundle exec`).
           pod install --repo-update
+      - name: Pre-bundle JS (surface Metro errors)
+        script: |
+          node --version
+          mkdir -p /tmp/rnassets
+          npx react-native bundle \
+            --platform ios \
+            --dev false \
+            --entry-file index.js \
+            --bundle-output /tmp/main.jsbundle \
+            --assets-dest /tmp/rnassets
       - name: Build unsigned archive
         script: |
           cd ios
