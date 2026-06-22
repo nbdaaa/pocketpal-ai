@@ -1,4 +1,4 @@
-import React, {useContext, useEffect, useRef, useState} from 'react';
+import React, {useContext, useEffect, useMemo, useRef, useState} from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -16,14 +16,14 @@ import {useSafeAreaInsets} from 'react-native-safe-area-context';
 import {DrawerActions, useNavigation} from '@react-navigation/native';
 import {launchCamera, launchImageLibrary} from 'react-native-image-picker';
 import {useCameraPermission} from 'react-native-vision-camera';
+import {WebView} from 'react-native-webview';
 
 import {useTheme} from '../../hooks';
 import {modelStore, chatSessionStore} from '../../store';
 import {L10nContext} from '../../utils';
 import {MessageType} from '../../utils/types';
-import {doctagsToHtml, isDocTags} from '../../utils/doctags';
+import {doctagsToInnerHtml, isDocTags, RENDER_CSS} from '../../utils/doctags';
 import {ScannerIcon} from '../../assets/icons';
-import {HtmlPreviewBubble} from '../HtmlPreviewBubble';
 import {HeaderRight} from '../HeaderRight';
 import ImageView from '../ChatView/ImageView';
 import {t} from '../../locales';
@@ -112,6 +112,29 @@ export const OCRView: React.FC<OCRViewProps> = observer(
         setRenderText(resultText);
       }
     }, [resultText, inferencing]);
+
+    // One WebView, loaded once; streaming updates are INJECTED into the DOM
+    // (not a source reload) so the scroll position is preserved while the model
+    // generates — a source change would reload and snap the scroll to the top.
+    const shellHtml = useMemo(
+      () =>
+        '<!DOCTYPE html><html><head>' +
+        '<meta name="viewport" content="width=device-width, initial-scale=1" />' +
+        RENDER_CSS +
+        '</head><body><div id="root" class="doc-render"></div></body></html>',
+      [],
+    );
+    const webRef = useRef<WebView>(null);
+    const [webReady, setWebReady] = useState(false);
+    useEffect(() => {
+      if (!webReady || !webRef.current) {
+        return;
+      }
+      const inner = JSON.stringify(doctagsToInnerHtml(renderText || ''));
+      webRef.current.injectJavaScript(
+        `(function(){var r=document.getElementById('root');if(r){r.innerHTML=${inner};}})();true;`,
+      );
+    }, [renderText, webReady]);
 
     const runOcr = async (uris: string[]) => {
       if (!uris || uris.length === 0) {
@@ -238,7 +261,7 @@ export const OCRView: React.FC<OCRViewProps> = observer(
 
         {resultText ? (
           <>
-            <ScrollView contentContainerStyle={styles.scrollContent}>
+            <View style={styles.resultArea}>
               {originalUri ? (
                 <TouchableOpacity
                   onPress={() => setPreview(originalUri)}
@@ -258,21 +281,33 @@ export const OCRView: React.FC<OCRViewProps> = observer(
                   </Text>
                 </TouchableOpacity>
               ) : null}
-              {isDocTags(renderText) ? (
-                // Render docling live as the model generates (throttled).
-                <HtmlPreviewBubble
-                  html={doctagsToHtml(renderText)}
-                  title="Docling"
+              {isDocTags(resultText) ? (
+                // Live docling: WebView loads ONCE; streaming text is injected
+                // into the DOM, so the user can scroll freely without the view
+                // snapping back to the top on each update.
+                <WebView
+                  ref={webRef}
+                  originWhitelist={['about:blank']}
+                  source={{html: shellHtml, baseUrl: 'about:blank'}}
+                  javaScriptEnabled
+                  scrollEnabled
+                  onLoadEnd={() => setWebReady(true)}
+                  onShouldStartLoadWithRequest={req =>
+                    req.url === 'about:blank'
+                  }
+                  style={styles.webview}
                 />
               ) : (
-                <Text selectable style={styles.rawText}>
-                  {renderText || resultText}
-                </Text>
+                <ScrollView contentContainerStyle={styles.scrollContent}>
+                  <Text selectable style={styles.rawText}>
+                    {renderText || resultText}
+                  </Text>
+                </ScrollView>
               )}
               {timingStr ? (
                 <Text style={styles.timing}>{timingStr}</Text>
               ) : null}
-            </ScrollView>
+            </View>
             <View style={[styles.bottomBar, {paddingBottom: insets.bottom + 12}]}>
               {inferencing ? busy : bigButton('Quét ảnh khác')}
             </View>
@@ -318,6 +353,8 @@ const createStyles = (theme: any) =>
     menuIcon: {fontSize: 24},
     title: {fontSize: 18, fontWeight: '700'},
     scrollContent: {padding: 16},
+    resultArea: {flex: 1, paddingHorizontal: 16, paddingTop: 12},
+    webview: {flex: 1, backgroundColor: 'transparent'},
     emptyCenter: {
       flex: 1,
       alignItems: 'center',

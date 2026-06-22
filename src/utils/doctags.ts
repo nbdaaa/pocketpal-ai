@@ -32,7 +32,7 @@ export function isDocTags(text: string): boolean {
   return /<doctag>/.test(text) || /<loc_\d+>/.test(text);
 }
 
-const RENDER_CSS = `<style>
+export const RENDER_CSS = `<style>
 .doc-render{max-width:820px;margin:0 auto;padding:24px 28px;background:#fff;color:#1a1a1a;
   font-family:'Times New Roman',serif;line-height:1.55;box-shadow:0 1px 6px rgba(0,0,0,.15);}
 .doc-render h1{font-size:1.5em;font-weight:700;margin:.2em 0 .6em;}
@@ -50,7 +50,12 @@ const RENDER_CSS = `<style>
  * Convert DocTags → styled HTML. Mirror of experiment/app.py `_render`
  * (Vietnamese tones are fixed first, matching the serving pipeline).
  */
-export function doctagsToHtml(doctags: string): string {
+/**
+ * Convert DocTags → the inner HTML fragment only (no CSS, no wrapper div).
+ * Used for live injection into an already-loaded WebView so streaming updates
+ * don't reload the page (which would reset the scroll position).
+ */
+export function doctagsToInnerHtml(doctags: string): string {
   let s = fixVietnameseTones(doctags);
   s = s.replace(/<\/?doctag>/g, '');
   s = s.replace(/<loc_\d+>/g, ''); // drop coordinate tokens
@@ -77,5 +82,12 @@ export function doctagsToHtml(doctags: string): string {
   s = s.replace(/<list_item>([\s\S]*?)<\/list_item>/g, '<li>$1</li>');
   s = s.replace(/<picture>([\s\S]*?)<\/picture>/g, '<div class="fig">🖼 $1</div>');
   s = s.replace(/<\/?formula>/g, '');
-  return RENDER_CSS + `<div class="doc-render">${s}</div>`;
+  return s;
+}
+
+/** Full standalone HTML document (CSS + wrapper) for WebView `source.html`. */
+export function doctagsToHtml(doctags: string): string {
+  return (
+    RENDER_CSS + `<div class="doc-render">${doctagsToInnerHtml(doctags)}</div>`
+  );
 }
