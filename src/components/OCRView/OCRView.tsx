@@ -24,6 +24,7 @@ import {MessageType} from '../../utils/types';
 import {doctagsToHtml, isDocTags} from '../../utils/doctags';
 import {ScannerIcon} from '../../assets/icons';
 import {HtmlPreviewBubble} from '../HtmlPreviewBubble';
+import {HeaderRight} from '../HeaderRight';
 
 // Hidden prompt — identical to the serving pipeline.
 const OCR_PROMPT = 'Convert this page to docling format.';
@@ -185,7 +186,7 @@ export const OCRView: React.FC<OCRViewProps> = observer(
           <Text style={[styles.title, {color: theme.colors.onBackground}]}>
             OCR
           </Text>
-          <View style={{width: 24}} />
+          <HeaderRight />
         </View>
 
         {resultText ? (
