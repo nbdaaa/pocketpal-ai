@@ -18,8 +18,10 @@ workflows:
       - name: Pod install
         script: |
           cd ios
-          bundle install
-          bundle exec pod install
+          # Use the image's system CocoaPods (skip bundler: the Gemfile pins
+          # ruby 3.2.3 which mismatches Codemagic's default ruby and breaks
+          # `bundle exec`).
+          pod install --repo-update
       - name: Build unsigned archive
         script: |
           cd ios
