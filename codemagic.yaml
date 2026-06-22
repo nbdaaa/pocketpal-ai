@@ -4,6 +4,10 @@ workflows:
     instance_type: mac_mini_m2
     max_build_duration: 120
     environment:
+      vars:
+        # Metro OOMs (default ~2GB heap) transforming the huge phonemize
+        # en-g2p.cjs TTS dataset; give node a bigger heap for every step.
+        NODE_OPTIONS: "--max-old-space-size=8192"
       node: 22.21.0
       xcode: latest
     scripts:
@@ -40,6 +44,7 @@ workflows:
           # The Xcode "Bundle React Native code and images" phase runs in a
           # shell without nvm/corepack, so pin node's absolute path for it.
           echo "export NODE_BINARY=$(command -v node)" > ios/.xcode.env.local
+          echo "export NODE_OPTIONS=--max-old-space-size=8192" >> ios/.xcode.env.local
           cat ios/.xcode.env.local
       - name: Pod install
         script: |
