@@ -1,9 +1,10 @@
-import React, {useContext, useState} from 'react';
+import React, {useContext, useEffect, useRef, useState} from 'react';
 import {
   ActivityIndicator,
   Alert,
   Image,
   Modal,
+  Platform,
   ScrollView,
   StyleSheet,
   TouchableOpacity,
@@ -25,6 +26,7 @@ import {doctagsToHtml, isDocTags} from '../../utils/doctags';
 import {ScannerIcon} from '../../assets/icons';
 import {HtmlPreviewBubble} from '../HtmlPreviewBubble';
 import {HeaderRight} from '../HeaderRight';
+import {t} from '../../locales';
 
 // Hidden prompt — identical to the serving pipeline.
 const OCR_PROMPT = 'Convert this page to docling format.';
@@ -65,6 +67,51 @@ export const OCRView: React.FC<OCRViewProps> = observer(
 
     const inferencing = modelStore.inferencing;
     const hasModel = !!modelStore.activeModelId;
+
+    // Timing line, identical format to the chat AssistantTurnFooter.
+    const timings: any = lastAssistant?.metadata?.timings;
+    const timingParts: string[] = [];
+    if (timings?.predicted_per_token_ms != null) {
+      timingParts.push(
+        t(l10n.components.bubble.msPerToken, {
+          value: timings.predicted_per_token_ms.toFixed(),
+        }),
+      );
+    }
+    if (timings?.predicted_per_second != null) {
+      timingParts.push(
+        t(l10n.components.bubble.tokensPerSec, {
+          value: timings.predicted_per_second.toFixed(2),
+        }),
+      );
+    }
+    if (timings?.time_to_first_token_ms != null) {
+      timingParts.push(
+        t(l10n.components.bubble.ttft, {value: timings.time_to_first_token_ms}),
+      );
+    }
+    const timingStr = timingParts.join(', ');
+
+    // Live-but-throttled render: refresh the rendered docling a few times per
+    // second while streaming (a per-token WebView reload would flicker and pin
+    // CPU), and snap to the full text the instant generation finishes.
+    const [renderText, setRenderText] = useState('');
+    const lastRenderRef = useRef(0);
+    useEffect(() => {
+      if (!resultText) {
+        setRenderText('');
+        return;
+      }
+      if (!inferencing) {
+        setRenderText(resultText);
+        return;
+      }
+      const now = Date.now();
+      if (now - lastRenderRef.current >= 350) {
+        lastRenderRef.current = now;
+        setRenderText(resultText);
+      }
+    }, [resultText, inferencing]);
 
     const runOcr = async (uris: string[]) => {
       if (!uris || uris.length === 0) {
@@ -211,16 +258,20 @@ export const OCRView: React.FC<OCRViewProps> = observer(
                   </Text>
                 </TouchableOpacity>
               ) : null}
-              {isDocTags(resultText) ? (
+              {isDocTags(renderText) ? (
+                // Render docling live as the model generates (throttled).
                 <HtmlPreviewBubble
-                  html={doctagsToHtml(resultText)}
+                  html={doctagsToHtml(renderText)}
                   title="Docling"
                 />
               ) : (
-                <Text selectable style={{color: theme.colors.onBackground}}>
-                  {resultText}
+                <Text selectable style={styles.rawText}>
+                  {renderText || resultText}
                 </Text>
               )}
+              {timingStr ? (
+                <Text style={styles.timing}>{timingStr}</Text>
+              ) : null}
             </ScrollView>
             <View style={[styles.bottomBar, {paddingBottom: insets.bottom + 12}]}>
               {inferencing ? busy : bigButton('Quét ảnh khác')}
@@ -307,6 +358,17 @@ const createStyles = (theme: any) =>
     thumbWrap: {alignItems: 'center', marginBottom: 16},
     thumb: {width: 120, height: 160, borderRadius: 8},
     thumbHint: {marginTop: 6, fontSize: 12},
+    rawText: {
+      fontFamily: Platform.select({ios: 'Menlo', android: 'monospace'}),
+      fontSize: 12,
+      lineHeight: 18,
+      color: theme.colors.onSurfaceVariant,
+    },
+    timing: {
+      marginTop: 14,
+      fontSize: 12,
+      color: theme.colors.onSurfaceVariant,
+    },
     modalBg: {
       flex: 1,
       backgroundColor: 'rgba(0,0,0,0.9)',
